@@ -17,9 +17,6 @@ public class DisseminationTest {
     @Test
     public void XMLParsing() {
 
-//        Document metsDocument = getDocumentFromInputStream(metsInputStream);
-//        List fileList = getListOfFilesToZip(metsDocument, xPathMetsFileGrp);
-        //assertXpathExists();
     }
 
     @BeforeClass

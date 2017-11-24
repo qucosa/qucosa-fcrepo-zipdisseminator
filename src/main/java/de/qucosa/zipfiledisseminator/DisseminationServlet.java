@@ -2,7 +2,6 @@ package de.qucosa.zipfiledisseminator;
 
 import de.qucosa.XmlUtils.Namespaces;
 import de.qucosa.XmlUtils.SimpleNamespaceContext;
-import org.apache.commons.io.FileUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -29,8 +28,8 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
-import java.net.URLConnection;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -71,21 +70,15 @@ public class DisseminationServlet extends HttpServlet {
 
             try (CloseableHttpResponse response = httpClient.execute(new HttpGet(metsDocumentUri))) {
                 if (SC_OK == response.getStatusLine().getStatusCode()) {
-                    InputStream metsInputStream = response.getEntity().getContent();
-                    // get METS document from Inputstream
-                    Document metsDocument = getDocumentFromInputStream(metsInputStream);
-                    // get url-map from METS document
-                    Map<String, URL> fileNameList = getListOfFileUris(metsDocument, xPathFLocat);
-                    // download files
-                    List<File> fileList = downloadFiles(fileNameList);
-                    // create zip outputstream by creating a zip file in memory with downloaded files
-                    byte[] zip = zipFiles(fileList);
+
+                    Document metsDocument = getDocumentFromInputStream(response.getEntity().getContent());
+                    List<DocumentFile> documentFiles = getDocumentFiles(metsDocument, xPathFLocat);
 
                     ServletOutputStream servletOutputStream = resp.getOutputStream();
                     resp.setHeader("Content-Disposition", "attachment; filename=\"" + zipFileName + "\"");
                     resp.setContentType("application/zip");
-
-                    servletOutputStream.write(zip);
+                    // write Zip-file (ByteArrayOutputStream) to Output-Stream
+                    getOutputStreamWithCompressedFile(documentFiles).writeTo(servletOutputStream);
                     resp.setStatus(SC_OK);
 
                     servletOutputStream.flush();
@@ -93,7 +86,7 @@ public class DisseminationServlet extends HttpServlet {
                     sendError(resp, SC_NOT_FOUND, "Cannot obtain METS document at " + metsDocumentUri.toASCIIString());
                 }
             }
-        } catch (MissingRequiredParameter | IllegalArgumentException e) {
+        } catch (MissingRequiredParameter | IllegalArgumentException | MissingDocumentNode e) {
             sendError(resp, SC_BAD_REQUEST, e.getMessage());
         } catch (Throwable anythingElse) {
             log.warn("Internal server error", anythingElse);
@@ -124,14 +117,13 @@ public class DisseminationServlet extends HttpServlet {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         documentBuilderFactory.setNamespaceAware(true);
         builder = documentBuilderFactory.newDocumentBuilder();
-        document = (Document) builder.parse(metsInputStream);
+        document = builder.parse(metsInputStream);
 
         return document;
     }
 
-    private Map<String, URL> getListOfFileUris(Document metsDocument, String xPath) throws XPathExpressionException, MalformedURLException {
-//        List<URL> urlList = new ArrayList<>();
-        Map<String, URL> urlList = new HashMap<>();
+    private List<DocumentFile> getDocumentFiles(Document metsDocument, String xPath) throws MissingDocumentNode, XPathExpressionException, MalformedURLException {
+        List<DocumentFile> documentFileList = new ArrayList<>();
 
         XPathFactory xPathFactory = XPathFactory.newInstance();
         XPath xpath = xPathFactory.newXPath();
@@ -142,90 +134,54 @@ public class DisseminationServlet extends HttpServlet {
         XPathExpression xPathExpr = xpath.compile(xPath);
         NodeList nodeFLocat = (NodeList) xPathExpr.evaluate(metsDocument, XPathConstants.NODESET);
 
-        for (int k=0; k<nodeFLocat.getLength(); k++) {
+        for (int k = 0; k < nodeFLocat.getLength(); k++) {
+            DocumentFile documentFile = new DocumentFile();
+            String downloadUrl;
+            String urlWithDomain;
             Element element = (Element) nodeFLocat.item(k);
-            String downloadUrl = element.getAttribute("xlin:href");
-            String fileTitle = element.getAttribute("xlin:title");
-            String completeUrl = downloadUrl.replace(":8080", ".slub-dresden.de:8080");
-            URL fileURL = new URL(completeUrl);
-            urlList.put(fileTitle, fileURL);
-        }
+            if (!element.getAttribute("xlin:href").isEmpty() || !element.getAttribute("xlin:title").isEmpty()) {
+                downloadUrl = element.getAttribute("xlin:href");
+                urlWithDomain = downloadUrl.replace(":8080", ".slub-dresden.de:8080");
+                URL fileURL = new URL(urlWithDomain);
 
-        return urlList;
-    }
-
-    private List<File> downloadFiles(Map<String, URL> fileList) throws IOException {
-        List<File> contentFiles = new ArrayList<>();
-
-        for (Map.Entry<String, URL> entry : fileList.entrySet()) {
-            File file = new File(entry.getKey());
-            FileUtils.copyURLToFile(entry.getValue(), file);
-//            FileUtils.toFile(entry.getValue());
-            contentFiles.add(file);
-        }
-
-        return contentFiles;
-    }
-
-    void downloadFromUrl(URL url, String localFilename) throws IOException {
-        InputStream is = null;
-        FileOutputStream fos = null;
-
-        try {
-            URLConnection urlConn = url.openConnection();//connect
-
-            is = urlConn.getInputStream();               //get connection inputstream
-            fos = new FileOutputStream(localFilename);   //open outputstream to local file
-
-            byte[] buffer = new byte[4096];              //declare 4KB buffer
-            int len;
-
-            //while we have availble data, continue downloading and storing to local file
-            while ((len = is.read(buffer)) > 0) {
-                fos.write(buffer, 0, len);
-            }
-        } finally {
-            try {
-                if (is != null) {
-                    is.close();
-                }
-            } finally {
-                if (fos != null) {
-                    fos.close();
-                }
+                documentFile.setContentUrl(fileURL);
+                documentFile.setTitle(element.getAttribute("xlin:title"));
+                documentFileList.add(documentFile);
+            } else {
+                throw new MissingDocumentNode("Cannot obtain content links (xlin:href or xlin:title) from METS document: " + metsDocument.getDocumentURI());
             }
         }
+
+        return documentFileList;
     }
 
-    /* TODO streams verketten, byte-array direkt in outputsream schreiben */
-    private byte[] zipFiles(List<File> fileList) {
+    private ByteArrayOutputStream getOutputStreamWithCompressedFile(List<DocumentFile> fileList) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        try(ZipOutputStream zip = new ZipOutputStream(baos)) {
-            for (File file : fileList) {
-                FileInputStream fis = new FileInputStream(file);
+        try (ZipOutputStream zip = new ZipOutputStream(baos)) {
+            for (DocumentFile file : fileList) {
+                InputStream is = file.getContentUrl().openStream();
+
                 // TODO FileName dependent on MIMETYPE and XLIN:TITLE
-                ZipEntry zipEntry = new ZipEntry(file.getName());
+                ZipEntry zipEntry = new ZipEntry(file.getTitle());
                 zip.putNextEntry(zipEntry);
 
                 byte[] bytes = new byte[1024];
                 int length;
-                while ((length = fis.read(bytes)) >= 0) {
+                while ((length = is.read(bytes)) >= 0) {
                     zip.write(bytes, 0, length);
                 }
-
                 zip.closeEntry();
-                fis.close();
+                is.close();
             }
             zip.flush();
             baos.flush();
             zip.close();
             baos.close();
-        } catch(IOException ioe) {
+        } catch (IOException ioe) {
             ioe.printStackTrace();
         }
 
-        return baos.toByteArray();
+        return baos;
     }
-
 }

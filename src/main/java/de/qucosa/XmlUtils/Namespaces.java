@@ -28,8 +28,6 @@ public final class Namespaces {
     public static final Namespace MODS = Namespace.getNamespace("mods", "http://www.loc.gov/mods/v3");
     public static final Namespace SLUB = Namespace.getNamespace("slub", "http://slub-dresden.de/");
     public static final Namespace XLIN = Namespace.getNamespace("xlin", "http://www.w3.org/1999/xlink");
-    public static final Namespace main = Namespace.getNamespace("main", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
-    public static final Namespace r = Namespace.getNamespace("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
 
     private Namespaces() {
     }
@@ -41,8 +39,6 @@ public final class Namespaces {
             put(MODS.getPrefix(), MODS.getURI());
             put(SLUB.getPrefix(), SLUB.getURI());
             put(XLIN.getPrefix(), XLIN.getURI());
-            put(main.getPrefix(), main.getURI());
-            put(r.getPrefix(), r.getURI());
         }};
     }
 

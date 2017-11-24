@@ -1,18 +1,19 @@
 package de.qucosa.zipfiledisseminator;
 
-public class DocumentFiles {
-    private String contentUrl;
+import java.net.URL;
+
+public class DocumentFile {
+    private URL contentUrl;
     private boolean isUseArchive;
     private String checksumType;
     private String checksum;
     private String title;
 
-
-    public String getContentUrl() {
+    public URL getContentUrl() {
         return contentUrl;
     }
 
-    public void setContentUrl(String contentUrl) {
+    public void setContentUrl(URL contentUrl) {
         this.contentUrl = contentUrl;
     }
 

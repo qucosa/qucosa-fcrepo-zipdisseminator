@@ -21,28 +21,6 @@
 		  http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" version="2.5">
 
     <!--
-        If present, the Disseminator will use this Fedora Host URL to connect to a
-        Fedora Server.
-
-        If not present, the Disseminator will try to extract a Fedora Host URL from the
-        request URL. Extracting the URL from the request works, if the service is deployed
-        as local Fedora service in the same Tomcat container as Fedora.
-    -->
-    <context-param>
-        <param-name>fedora.host.url</param-name>
-        <param-value>http://localhost:8080/fedora</param-value>
-    </context-param>
-
-    <!--
-        If no credentials are supplied via HTTP BasicAuth header, the credentials configured
-        in 'fedora.credentials' are used for connecting to the Fedora Server.
-    -->
-    <context-param>
-        <param-name>fedora.credentials</param-name>
-        <param-value>fedoraAdmin:fedoraAdmin</param-value>
-    </context-param>
-
-    <!--
         Configures the URL to be used when emitting URLs locating the actual content of
         a datastream. This is useful, if the Fedora Repository is not available at localhost:8080.
 
