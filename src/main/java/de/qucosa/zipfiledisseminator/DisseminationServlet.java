@@ -17,8 +17,8 @@
 
 package de.qucosa.zipfiledisseminator;
 
-import de.qucosa.XmlUtils.Namespaces;
-import de.qucosa.XmlUtils.SimpleNamespaceContext;
+import de.qucosa.xmlutils.Namespaces;
+import de.qucosa.xmlutils.SimpleNamespaceContext;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;

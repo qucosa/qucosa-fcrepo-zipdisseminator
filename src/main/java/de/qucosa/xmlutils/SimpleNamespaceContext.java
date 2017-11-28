@@ -1,4 +1,4 @@
-package de.qucosa.XmlUtils;
+package de.qucosa.xmlutils;
 
 import java.util.HashMap;
 import java.util.Iterator;

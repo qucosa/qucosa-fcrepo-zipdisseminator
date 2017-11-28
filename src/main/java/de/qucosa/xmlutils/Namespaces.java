@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package de.qucosa.XmlUtils;
+package de.qucosa.xmlutils;
 
 import org.jdom2.Namespace;
 
