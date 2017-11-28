@@ -127,7 +127,7 @@ public class DisseminationServlet extends HttpServlet {
         return v;
     }
 
-    private Document getDocumentFromInputStream(InputStream metsInputStream) throws ParserConfigurationException, IOException, SAXException {
+    public Document getDocumentFromInputStream(InputStream metsInputStream) throws ParserConfigurationException, IOException, SAXException {
         DocumentBuilder builder = null;
         Document document = null;
 
@@ -139,7 +139,7 @@ public class DisseminationServlet extends HttpServlet {
         return document;
     }
 
-    private List<DocumentFile> getDocumentFiles(Document metsDocument, String xPath) throws MissingDocumentNode, XPathExpressionException, MalformedURLException {
+    public List<DocumentFile> getDocumentFiles(Document metsDocument, String xPath) throws MissingDocumentNode, XPathExpressionException, MalformedURLException {
         List<DocumentFile> documentFileList = new ArrayList<>();
 
         XPathFactory xPathFactory = XPathFactory.newInstance();
@@ -173,7 +173,7 @@ public class DisseminationServlet extends HttpServlet {
         return documentFileList;
     }
 
-    private ByteArrayOutputStream getOutputStreamWithCompressedFile(List<DocumentFile> fileList) {
+    public ByteArrayOutputStream getOutputStreamWithCompressedFile(List<DocumentFile> fileList) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         try (ZipOutputStream zip = new ZipOutputStream(baos)) {
