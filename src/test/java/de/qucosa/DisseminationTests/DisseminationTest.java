@@ -1,42 +1,78 @@
 package de.qucosa.DisseminationTests;
 
-import de.qucosa.XmlUtils.Namespaces;
 import de.qucosa.zipfiledisseminator.DisseminationServlet;
-import de.qucosa.zipfiledisseminator.DocumentFile;
-import de.qucosa.zipfiledisseminator.MissingDocumentNode;
-import org.custommonkey.xmlunit.SimpleNamespaceContext;
-import org.custommonkey.xmlunit.XMLUnit;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.w3c.dom.Document;
-import org.xml.sax.SAXException;
 
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.XPathExpressionException;
-import java.io.*;
-import java.util.List;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLStreamHandler;
+import java.net.URLStreamHandlerFactory;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+import static org.junit.Assert.assertEquals;
 
 public class DisseminationTest {
-    private static final String xPathFLocat = "//mets:fileSec/mets:fileGrp[@USE='DOWNLOAD']/mets:file[@USE='ARCHIVE']/mets:FLocat";
+
+    private InputStream minimalMets;
+    private PipedInputStream sink;
+    private PipedOutputStream source;
+
+    @Before
+    public void plumbing() throws IOException {
+        sink = new PipedInputStream();
+        source = new PipedOutputStream(sink);
+    }
+
+    @Before
+    public void prepareMinimalMets() throws IOException {
+        minimalMets = new URL("classpath:minimal.mets.xml").openStream();
+    }
+
+    @After
+    public void disposeMinimalMets() {
+        try {
+            minimalMets.close();
+        } catch (IOException ignored) {
+        }
+    }
 
     @Test
-    @Ignore("Not yet implemented.")
-    public void XMLParsing() throws XPathExpressionException, MissingDocumentNode, IOException, SAXException, ParserConfigurationException {
-        ClassLoader classLoader = getClass().getClassLoader();
-        File metsFile = new File(classLoader.getResource("MetsExampleKleiner.xml").getFile());
-        InputStream is = new FileInputStream(metsFile);
-        DisseminationServlet servlet = new DisseminationServlet();
-        Document metsDocument = servlet.getDocumentFromInputStream(is);
-        List<DocumentFile> documentFiles = servlet.getDocumentFiles(metsDocument, xPathFLocat);
-        FileOutputStream fos = new FileOutputStream(new File("content.zip"));
-        servlet.getOutputStreamWithCompressedFile(documentFiles).writeTo(fos);
+    public void ZIP_contains_two_test_files() throws Exception {
+        new DisseminationServlet().disseminateZip(minimalMets).writeTo(source);
 
-        /* TODO read and confirm zip */
+        ZipInputStream zis = new ZipInputStream(sink);
+        ZipEntry ze1 = zis.getNextEntry();
+        ZipEntry ze2 = zis.getNextEntry();
+        assertEquals("Plain text title A", ze1.getName());
+        assertEquals("Plain text title B", ze2.getName());
     }
 
     @BeforeClass
-    static public void setupXpathNamespaces() {
-        XMLUnit.setXpathNamespaceContext(new SimpleNamespaceContext(Namespaces.getPrefixUriMap()));
+    static public void registerClasspathProtocolHandler() {
+        URL.setURLStreamHandlerFactory(new URLStreamHandlerFactory() {
+            @Override
+            public URLStreamHandler createURLStreamHandler(String protocol) {
+                return "classpath".equals(protocol) ? new URLStreamHandler() {
+                    @Override
+                    protected URLConnection openConnection(URL u) throws IOException {
+                        ClassLoader classLoader = getClass().getClassLoader();
+                        URL url = classLoader.getResource(u.getPath());
+                        if (url != null) {
+                            return url.openConnection();
+                        } else {
+                            throw new IOException("Resource not found: " + u.toString());
+                        }
+                    }
+                } : null;
+            }
+        });
     }
 }

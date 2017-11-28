@@ -32,16 +32,20 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import javax.servlet.ServletException;
-import javax.servlet.ServletOutputStream;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.*;
-import java.io.*;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
@@ -50,7 +54,10 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import static javax.servlet.http.HttpServletResponse.*;
+import static javax.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
+import static javax.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
+import static javax.servlet.http.HttpServletResponse.SC_OK;
 
 public class DisseminationServlet extends HttpServlet {
 
@@ -61,6 +68,7 @@ public class DisseminationServlet extends HttpServlet {
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     private CloseableHttpClient httpClient;
+    private DocumentBuilderFactory documentBuilderFactory;
 
     @Override
     public void init() throws ServletException {
@@ -68,6 +76,9 @@ public class DisseminationServlet extends HttpServlet {
                 .create()
                 .setConnectionManager(new PoolingHttpClientConnectionManager())
                 .build();
+
+        documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        documentBuilderFactory.setNamespaceAware(true);
     }
 
     @Override
@@ -79,6 +90,12 @@ public class DisseminationServlet extends HttpServlet {
         }
     }
 
+    public ByteArrayOutputStream disseminateZip(InputStream in) throws IOException, SAXException, ParserConfigurationException, XPathExpressionException, MissingDocumentNode {
+        Document metsDocument = documentBuilderFactory.newDocumentBuilder().parse(in);
+        List<DocumentFile> documentFiles = getDocumentFiles(metsDocument, xPathFLocat);
+        return getOutputStreamWithCompressedFile(documentFiles);
+    }
+
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
@@ -88,17 +105,14 @@ public class DisseminationServlet extends HttpServlet {
             try (CloseableHttpResponse response = httpClient.execute(new HttpGet(metsDocumentUri))) {
                 if (SC_OK == response.getStatusLine().getStatusCode()) {
 
-                    Document metsDocument = getDocumentFromInputStream(response.getEntity().getContent());
-                    List<DocumentFile> documentFiles = getDocumentFiles(metsDocument, xPathFLocat);
+                    ByteArrayOutputStream outputStreamWithCompressedFile = disseminateZip(response.getEntity().getContent());
 
-                    ServletOutputStream servletOutputStream = resp.getOutputStream();
                     resp.setHeader("Content-Disposition", "attachment; filename=\"" + zipFileName + "\"");
                     resp.setContentType("application/zip");
-                    // write Zip-file (ByteArrayOutputStream) to Output-Stream
-                    getOutputStreamWithCompressedFile(documentFiles).writeTo(servletOutputStream);
-                    resp.setStatus(SC_OK);
 
-                    servletOutputStream.flush();
+                    outputStreamWithCompressedFile.writeTo(resp.getOutputStream());
+                    resp.setStatus(SC_OK);
+                    resp.getOutputStream().flush();
                 } else {
                     sendError(resp, SC_NOT_FOUND, "Cannot obtain METS document at " + metsDocumentUri.toASCIIString());
                 }
@@ -127,19 +141,7 @@ public class DisseminationServlet extends HttpServlet {
         return v;
     }
 
-    public Document getDocumentFromInputStream(InputStream metsInputStream) throws ParserConfigurationException, IOException, SAXException {
-        DocumentBuilder builder = null;
-        Document document = null;
-
-        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        documentBuilderFactory.setNamespaceAware(true);
-        builder = documentBuilderFactory.newDocumentBuilder();
-        document = builder.parse(metsInputStream);
-
-        return document;
-    }
-
-    public List<DocumentFile> getDocumentFiles(Document metsDocument, String xPath) throws MissingDocumentNode, XPathExpressionException, MalformedURLException {
+    private List<DocumentFile> getDocumentFiles(Document metsDocument, String xPath) throws MissingDocumentNode, XPathExpressionException, MalformedURLException {
         List<DocumentFile> documentFileList = new ArrayList<>();
 
         XPathFactory xPathFactory = XPathFactory.newInstance();
@@ -154,14 +156,10 @@ public class DisseminationServlet extends HttpServlet {
         for (int k = 0; k < nodeFLocat.getLength(); k++) {
             DocumentFile documentFile = new DocumentFile();
             String downloadUrl;
-            String urlWithDomain;
             Element element = (Element) nodeFLocat.item(k);
             if (!element.getAttribute("xlin:href").isEmpty() || !element.getAttribute("xlin:title").isEmpty()) {
                 downloadUrl = element.getAttribute("xlin:href");
-                urlWithDomain = downloadUrl.replace(":8080", ".slub-dresden.de:8080");
-                URL fileURL = new URL(urlWithDomain);
-//                URL fileURL = new URL(downloadUrl);
-
+                URL fileURL = new URL(downloadUrl);
                 documentFile.setContentUrl(fileURL);
                 documentFile.setTitle(element.getAttribute("xlin:title"));
                 documentFileList.add(documentFile);
@@ -173,7 +171,7 @@ public class DisseminationServlet extends HttpServlet {
         return documentFileList;
     }
 
-    public ByteArrayOutputStream getOutputStreamWithCompressedFile(List<DocumentFile> fileList) {
+    private ByteArrayOutputStream getOutputStreamWithCompressedFile(List<DocumentFile> fileList) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         try (ZipOutputStream zip = new ZipOutputStream(baos)) {

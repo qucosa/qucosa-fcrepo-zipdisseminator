@@ -16,7 +16,7 @@
 
 package de.qucosa.XmlUtils;
 
-import org.jdom.Namespace;
+import org.jdom2.Namespace;
 
 import java.util.HashMap;
 import java.util.Map;
