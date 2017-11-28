@@ -12,14 +12,12 @@ The qucosa-fcrepo-zipdisseminator program is a Maven project and as such can be 
 $ mvn package
 ```
 
-This will generate a runnable JAR file `target/qucosa-fcrepo-zipfiledisseminator-<VERSION>.jar` for execution on the command line.
+This will generate a deployable WAR file `target/qucosa-fcrepo-zipfiledisseminator-<VERSION>.war` for deployment into a servlet container.
 
 ## Usage
 
-You will have to provide a suitable JDBC driver via the Java Classpath in order to connect to databases.
-
-a. Either run the packed Jar-File with the `java -jar` command
-b. Or just run `mvn exec:java`
+The deployed service accepts a `metsurl` parameter, which must contain the URL
+encoded location of a valid METS file.
 
 ## Licence
 
