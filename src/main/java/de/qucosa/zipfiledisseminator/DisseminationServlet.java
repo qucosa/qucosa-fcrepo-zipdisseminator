@@ -32,6 +32,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import javax.servlet.ServletException;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -43,9 +44,9 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
@@ -90,10 +91,10 @@ public class DisseminationServlet extends HttpServlet {
         }
     }
 
-    public ByteArrayOutputStream disseminateZip(InputStream in) throws IOException, SAXException, ParserConfigurationException, XPathExpressionException, MissingDocumentNode {
-        Document metsDocument = documentBuilderFactory.newDocumentBuilder().parse(in);
+    public void disseminateZip(InputStream metsInputStream, OutputStream zipOutputStream) throws ParserConfigurationException, XPathExpressionException, MissingDocumentNode, IOException, SAXException {
+        Document metsDocument = documentBuilderFactory.newDocumentBuilder().parse(metsInputStream);
         List<DocumentFile> documentFiles = getDocumentFiles(metsDocument, xPathFLocat);
-        return getOutputStreamWithCompressedFile(documentFiles);
+        streamZipFile(documentFiles, zipOutputStream);
     }
 
     @Override
@@ -104,15 +105,14 @@ public class DisseminationServlet extends HttpServlet {
 
             try (CloseableHttpResponse response = httpClient.execute(new HttpGet(metsDocumentUri))) {
                 if (SC_OK == response.getStatusLine().getStatusCode()) {
-
-                    ByteArrayOutputStream outputStreamWithCompressedFile = disseminateZip(response.getEntity().getContent());
-
                     resp.setHeader("Content-Disposition", "attachment; filename=\"" + zipFileName + "\"");
                     resp.setContentType("application/zip");
 
-                    outputStreamWithCompressedFile.writeTo(resp.getOutputStream());
+                    InputStream metsContentStream = response.getEntity().getContent();
+                    ServletOutputStream responseOutputStream = resp.getOutputStream();
+                    disseminateZip(metsContentStream, responseOutputStream);
+
                     resp.setStatus(SC_OK);
-                    resp.getOutputStream().flush();
                 } else {
                     sendError(resp, SC_NOT_FOUND, "Cannot obtain METS document at " + metsDocumentUri.toASCIIString());
                 }
@@ -171,10 +171,8 @@ public class DisseminationServlet extends HttpServlet {
         return documentFileList;
     }
 
-    private ByteArrayOutputStream getOutputStreamWithCompressedFile(List<DocumentFile> fileList) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-        try (ZipOutputStream zip = new ZipOutputStream(baos)) {
+    private void streamZipFile(List<DocumentFile> fileList, OutputStream outputStream) {
+        try (ZipOutputStream zip = new ZipOutputStream(outputStream)) {
             for (DocumentFile file : fileList) {
                 InputStream is = file.getContentUrl().openStream();
 
@@ -190,14 +188,9 @@ public class DisseminationServlet extends HttpServlet {
                 zip.closeEntry();
                 is.close();
             }
-            zip.flush();
-            baos.flush();
             zip.close();
-            baos.close();
         } catch (IOException ioe) {
             ioe.printStackTrace();
         }
-
-        return baos;
     }
 }

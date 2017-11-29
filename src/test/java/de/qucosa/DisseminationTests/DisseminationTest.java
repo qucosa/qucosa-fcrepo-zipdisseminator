@@ -6,6 +6,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
@@ -21,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 
 public class DisseminationTest {
 
+    private DisseminationServlet disseminationServlet;
     private InputStream minimalMets;
     private PipedInputStream sink;
     private PipedOutputStream source;
@@ -29,6 +31,17 @@ public class DisseminationTest {
     public void plumbing() throws IOException {
         sink = new PipedInputStream();
         source = new PipedOutputStream(sink);
+    }
+
+    @Before
+    public void prepareServlet() throws ServletException {
+        disseminationServlet = new DisseminationServlet();
+        disseminationServlet.init();
+    }
+
+    @After
+    public void shutdownServlet() {
+        disseminationServlet.destroy();
     }
 
     @Before
@@ -46,7 +59,7 @@ public class DisseminationTest {
 
     @Test
     public void ZIP_contains_two_test_files() throws Exception {
-        new DisseminationServlet().disseminateZip(minimalMets).writeTo(source);
+        disseminationServlet.disseminateZip(minimalMets, source);
 
         ZipInputStream zis = new ZipInputStream(sink);
         ZipEntry ze1 = zis.getNextEntry();
