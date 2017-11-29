@@ -20,10 +20,10 @@ package de.qucosa.zipdisseminator;
 import java.net.URL;
 
 public class DocumentFile {
+    private String checksum;
+    private String checksumType;
     private URL contentUrl;
     private boolean isUseArchive;
-    private String checksumType;
-    private String checksum;
     private String title;
 
     public URL getContentUrl() {

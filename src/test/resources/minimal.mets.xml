@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mets:mets xmlns:mets="http://www.loc.gov/METS/"
-           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd">
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd">
 
     <mets:fileSec>
         <mets:fileGrp xmlns:xlin="http://www.w3.org/1999/xlink" xmlns:mext="http://slub-dresden.de/mets" USE="DOWNLOAD">

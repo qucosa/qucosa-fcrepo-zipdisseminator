@@ -49,13 +49,6 @@ public class ZipDisseminatorTest {
         assertEquals("Plain text title B", ze2.getName());
     }
 
-    private void close(Closeable c) {
-        try {
-            c.close();
-        } catch (IOException ignored) {
-        }
-    }
-
     @BeforeClass
     static public void registerClasspathProtocolHandler() {
         URL.setURLStreamHandlerFactory(new URLStreamHandlerFactory() {
@@ -75,5 +68,12 @@ public class ZipDisseminatorTest {
                 } : null;
             }
         });
+    }
+
+    private void close(Closeable c) {
+        try {
+            c.close();
+        } catch (IOException ignored) {
+        }
     }
 }

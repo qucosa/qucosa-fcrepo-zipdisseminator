@@ -1,9 +1,9 @@
 package de.qucosa.xmlutils;
 
+import javax.xml.namespace.NamespaceContext;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import javax.xml.namespace.NamespaceContext;
 
 public class SimpleNamespaceContext implements NamespaceContext {
 
