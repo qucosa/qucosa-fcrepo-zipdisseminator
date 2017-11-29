@@ -7,7 +7,7 @@ import javax.xml.namespace.NamespaceContext;
 
 public class SimpleNamespaceContext implements NamespaceContext {
 
-    private final Map<String, String> PREF_MAP = new HashMap<String, String>();
+    private final Map<String, String> PREF_MAP = new HashMap<>();
 
     public SimpleNamespaceContext(final Map<String, String> prefMap) {
         PREF_MAP.putAll(prefMap);
