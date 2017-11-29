@@ -15,7 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.qucosa.zipfiledisseminator;
+package de.qucosa.zipdisseminator;
 
 import java.net.URL;
 

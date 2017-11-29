@@ -1,14 +1,13 @@
 package de.qucosa.DisseminationTests;
 
-import de.qucosa.zipfiledisseminator.DisseminationServlet;
+import de.qucosa.zipdisseminator.ZipDisseminator;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import javax.servlet.ServletException;
+import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.net.URL;
@@ -20,52 +19,41 @@ import java.util.zip.ZipInputStream;
 
 import static org.junit.Assert.assertEquals;
 
-public class DisseminationTest {
+public class ZipDisseminatorTest {
 
-    private DisseminationServlet disseminationServlet;
-    private InputStream minimalMets;
-    private PipedInputStream sink;
-    private PipedOutputStream source;
+    private PipedInputStream in;
+    private PipedOutputStream out;
 
     @Before
     public void plumbing() throws IOException {
-        sink = new PipedInputStream();
-        source = new PipedOutputStream(sink);
-    }
-
-    @Before
-    public void prepareServlet() throws ServletException {
-        disseminationServlet = new DisseminationServlet();
-        disseminationServlet.init();
+        in = new PipedInputStream();
+        out = new PipedOutputStream(in);
     }
 
     @After
-    public void shutdownServlet() {
-        disseminationServlet.destroy();
-    }
-
-    @Before
-    public void prepareMinimalMets() throws IOException {
-        minimalMets = new URL("classpath:minimal.mets.xml").openStream();
-    }
-
-    @After
-    public void disposeMinimalMets() {
-        try {
-            minimalMets.close();
-        } catch (IOException ignored) {
-        }
+    public void dispose() {
+        close(out);
+        close(in);
     }
 
     @Test
     public void ZIP_contains_two_test_files() throws Exception {
-        disseminationServlet.disseminateZip(minimalMets, source);
+        ZipDisseminator disseminator = new ZipDisseminator();
 
-        ZipInputStream zis = new ZipInputStream(sink);
+        disseminator.disseminateZipForMets(new URL("classpath:minimal.mets.xml").openStream(), out);
+
+        ZipInputStream zis = new ZipInputStream(in);
         ZipEntry ze1 = zis.getNextEntry();
         ZipEntry ze2 = zis.getNextEntry();
         assertEquals("Plain text title A", ze1.getName());
         assertEquals("Plain text title B", ze2.getName());
+    }
+
+    private void close(Closeable c) {
+        try {
+            c.close();
+        } catch (IOException ignored) {
+        }
     }
 
     @BeforeClass

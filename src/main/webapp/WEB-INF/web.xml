@@ -36,7 +36,7 @@
 
     <servlet>
         <servlet-name>DisseminationServlet</servlet-name>
-        <servlet-class>de.qucosa.zipfiledisseminator.DisseminationServlet</servlet-class>
+        <servlet-class>de.qucosa.zipdisseminator.DisseminationServlet</servlet-class>
     </servlet>
     <servlet-mapping>
         <servlet-name>DisseminationServlet</servlet-name>

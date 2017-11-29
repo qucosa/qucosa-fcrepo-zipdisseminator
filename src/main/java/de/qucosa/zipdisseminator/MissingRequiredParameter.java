@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package de.qucosa.zipfiledisseminator;
+package de.qucosa.zipdisseminator;
 
 class MissingRequiredParameter extends Exception {
     MissingRequiredParameter(String message) {
