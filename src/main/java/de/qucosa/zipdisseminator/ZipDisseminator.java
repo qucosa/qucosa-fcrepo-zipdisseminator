@@ -51,7 +51,7 @@ public class ZipDisseminator {
         documentBuilderFactory.setNamespaceAware(true);
     }
 
-    public void disseminateZipForMets(InputStream metsInputStream, OutputStream zipOutputStream)
+    void disseminateZipForMets(InputStream metsInputStream, OutputStream zipOutputStream)
             throws InvalidMETSDocument, IOException {
 
         Document metsDocument;
@@ -94,13 +94,15 @@ public class ZipDisseminator {
                 DocumentFile documentFile = new DocumentFile();
                 String downloadUrl;
                 Element element = (Element) nodeFLocat.item(k);
-                if (!element.getAttribute("xlin:href").isEmpty() || !element.getAttribute("xlin:title").isEmpty()) {
-                    downloadUrl = element.getAttribute("xlin:href");
+                String href = element.getAttribute("xlin:href");
+                String title = element.getAttribute("xlin:title");
+                if (!href.isEmpty() || !title.isEmpty()) {
+                    downloadUrl = href;
                     documentFile.setContentUrl(new URL(downloadUrl));
-                    documentFile.setTitle(element.getAttribute("xlin:title"));
+                    documentFile.setTitle(title);
                     documentFileList.add(documentFile);
                 } else {
-                    throw new InvalidMETSDocument("Cannot obtain content links (xlin:href or xlin:title) from METS document: " + metsDocument.getDocumentURI());
+                    throw new InvalidMETSDocument("Cannot obtain content links from METS document: " + metsDocument.getDocumentURI());
                 }
             }
         } catch (MalformedURLException e) {

@@ -21,13 +21,13 @@
            xsi:schemaLocation="http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd">
 
     <mets:fileSec>
-        <mets:fileGrp xmlns:xlin="http://www.w3.org/1999/xlink" xmlns:mext="http://slub-dresden.de/mets" USE="DOWNLOAD">
-            <mets:file ID="ATT-0" MIMETYPE="text/plain" mext:LABEL="Plain text label A" USE="ARCHIVE">
+        <mets:fileGrp xmlns:xlin="http://www.w3.org/1999/xlink" USE="DOWNLOAD">
+            <mets:file ID="ATT-0" MIMETYPE="text/plain" USE="ARCHIVE">
                 <mets:FLocat LOCTYPE="URL"
                              xlin:href="classpath:a.txt"
                              xlin:title="Plain text title A"/>
             </mets:file>
-            <mets:file ID="ATT-1" MIMETYPE="text/plain" mext:LABEL="Plain text label B" USE="ARCHIVE">
+            <mets:file ID="ATT-1" MIMETYPE="text/plain" USE="ARCHIVE">
                 <mets:FLocat LOCTYPE="URL"
                              xlin:href="classpath:b.txt"
                              xlin:title="Plain text title B"/>
