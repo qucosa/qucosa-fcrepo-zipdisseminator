@@ -66,6 +66,7 @@ public class DisseminationServlet extends HttpServlet {
     public void destroy() {
         try {
             threadLocalHttpClient.get().close();
+            threadLocalHttpClient.remove();
         } catch (IOException e) {
             log.warn("Problem closing HTTP client: " + e.getMessage());
         }
