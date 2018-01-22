@@ -25,7 +25,6 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -46,28 +45,34 @@ public class DisseminationServlet extends HttpServlet {
     private static final String zipFileName = "content.zip";
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
-    private CloseableHttpClient httpClient;
+    private ThreadLocal<CloseableHttpClient> threadLocalHttpClient;
+    private PoolingHttpClientConnectionManager poolingHttpClientConnectionManager;
 
     @Override
-    public void init() throws ServletException {
-        httpClient = HttpClientBuilder
-                .create()
-                .setConnectionManager(new PoolingHttpClientConnectionManager())
-                .build();
+    public void init() {
+        poolingHttpClientConnectionManager = new PoolingHttpClientConnectionManager();
+
+        threadLocalHttpClient = new ThreadLocal<CloseableHttpClient>() {
+            @Override
+            protected CloseableHttpClient initialValue() {
+                return HttpClientBuilder.create()
+                        .setConnectionManager(poolingHttpClientConnectionManager)
+                        .build();
+            }
+        };
     }
 
     @Override
     public void destroy() {
         try {
-            httpClient.close();
+            threadLocalHttpClient.get().close();
         } catch (IOException e) {
             log.warn("Problem closing HTTP client: " + e.getMessage());
         }
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
 
             URI metsDocumentURI;
@@ -78,7 +83,7 @@ public class DisseminationServlet extends HttpServlet {
                 return;
             }
 
-            try (CloseableHttpResponse response = httpClient.execute(new HttpGet(metsDocumentURI))) {
+            try (CloseableHttpResponse response = threadLocalHttpClient.get().execute(new HttpGet(metsDocumentURI))) {
 
                 if (SC_OK == response.getStatusLine().getStatusCode()) {
 
