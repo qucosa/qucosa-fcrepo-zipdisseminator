@@ -45,28 +45,20 @@ public class DisseminationServlet extends HttpServlet {
     private static final String zipFileName = "content.zip";
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
-    private ThreadLocal<CloseableHttpClient> threadLocalHttpClient;
-    private PoolingHttpClientConnectionManager poolingHttpClientConnectionManager;
+
+    private CloseableHttpClient httpClient;
 
     @Override
     public void init() {
-        poolingHttpClientConnectionManager = new PoolingHttpClientConnectionManager();
-
-        threadLocalHttpClient = new ThreadLocal<CloseableHttpClient>() {
-            @Override
-            protected CloseableHttpClient initialValue() {
-                return HttpClientBuilder.create()
-                        .setConnectionManager(poolingHttpClientConnectionManager)
+        httpClient = HttpClientBuilder.create()
+                .setConnectionManager(new PoolingHttpClientConnectionManager())
                         .build();
-            }
-        };
     }
 
     @Override
     public void destroy() {
         try {
-            threadLocalHttpClient.get().close();
-            threadLocalHttpClient.remove();
+            httpClient.close();
         } catch (IOException e) {
             log.warn("Problem closing HTTP client: " + e.getMessage());
         }
@@ -84,7 +76,7 @@ public class DisseminationServlet extends HttpServlet {
                 return;
             }
 
-            try (CloseableHttpResponse response = threadLocalHttpClient.get().execute(new HttpGet(metsDocumentURI))) {
+            try (CloseableHttpResponse response = httpClient.execute(new HttpGet(metsDocumentURI))) {
 
                 if (SC_OK == response.getStatusLine().getStatusCode()) {
 
