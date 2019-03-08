@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/qucosa/qucosa-fcrepo-migration.png)](https://travis-ci.org/qucosa/qucosa-fcrepo-migration)
-
 ## Description
 
 ZipDisseminator-HTTP Servlet examines Download-Resources from METS documents (GET-Request-Parameter), compresses the Download-Resources
