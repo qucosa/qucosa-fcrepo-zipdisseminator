@@ -90,21 +90,21 @@ public class ZipDisseminatorTest {
 
     @Test(expected = InvalidMETSDocument.class)
     public void File_elements_without_href_throws_exception() throws Exception {
-        String xml = buildMetsXml(String.format("<file USE=\"ARCHIVE\"><FLocat title=\"some title\"/></file>"));
+        String xml = buildMetsXml("<file USE=\"ARCHIVE\"><FLocat title=\"some title\"/></file>");
 
         disseminator.disseminateZipForMets(stringAsStream(xml), out);
     }
 
     @Test(expected = InvalidMETSDocument.class)
     public void File_elements_without_title_throws_exception() throws Exception {
-        String xml = buildMetsXml(String.format("<file USE=\"ARCHIVE\"><FLocat href=\"classpath:a.txt\"/></file>"));
+        String xml = buildMetsXml("<file USE=\"ARCHIVE\"><FLocat href=\"classpath:a.txt\"/></file>");
 
         disseminator.disseminateZipForMets(stringAsStream(xml), out);
     }
 
     @Test
     public void File_elements_without_USE_ARCHIVE_should_not_be_zipped() throws Exception {
-        String xml = buildMetsXml(String.format("<file><FLocat href=\"classpath:a.txt\"/></file>"));
+        String xml = buildMetsXml("<file><FLocat href=\"classpath:a.txt\"/></file>");
 
         disseminator.disseminateZipForMets(stringAsStream(xml), out);
 
