@@ -91,19 +91,24 @@ public class ZipDisseminator {
 
         try {
             for (int k = 0; k < nodeFLocat.getLength(); k++) {
-                DocumentFile documentFile = new DocumentFile();
-                String downloadUrl;
                 Element element = (Element) nodeFLocat.item(k);
-                String href = element.getAttribute("xlin:href");
-                String title = element.getAttribute("xlin:title");
-                if (!href.isEmpty() || !title.isEmpty()) {
-                    downloadUrl = href;
-                    documentFile.setContentUrl(new URL(downloadUrl));
-                    documentFile.setTitle(title);
-                    documentFileList.add(documentFile);
-                } else {
+
+                String href = element.getAttributeNS(Namespaces.XLIN.getURI(), "href");
+                String title = element.getAttributeNS(Namespaces.XLIN.getURI(), "title");
+
+                if (href.isEmpty() || title.isEmpty()) {
                     throw new InvalidMETSDocument("Cannot obtain content links from METS document: " + metsDocument.getDocumentURI());
                 }
+
+                String filteredFileName = title
+                        .replaceAll("[\\(\\)]", "")
+                        .replaceAll("\\s", "-");
+
+                DocumentFile documentFile = new DocumentFile();
+                documentFile.setContentUrl(new URL(href));
+                documentFile.setTitle(filteredFileName);
+
+                documentFileList.add(documentFile);
             }
         } catch (MalformedURLException e) {
             // throw on invalid URLs in METS document

@@ -35,8 +35,11 @@ import java.net.URLStreamHandlerFactory;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
 public class ZipDisseminatorTest {
 
@@ -90,26 +93,41 @@ public class ZipDisseminatorTest {
 
     @Test(expected = InvalidMETSDocument.class)
     public void File_elements_without_href_throws_exception() throws Exception {
-        String xml = buildMetsXml("<file USE=\"ARCHIVE\"><FLocat title=\"some title\"/></file>");
+        String xml = buildMetsXml("<file USE=\"ARCHIVE\"><FLocat xlink:title=\"some title\"/></file>");
 
         disseminator.disseminateZipForMets(stringAsStream(xml), out);
     }
 
     @Test(expected = InvalidMETSDocument.class)
     public void File_elements_without_title_throws_exception() throws Exception {
-        String xml = buildMetsXml("<file USE=\"ARCHIVE\"><FLocat href=\"classpath:a.txt\"/></file>");
+        String xml = buildMetsXml("<file USE=\"ARCHIVE\"><FLocat xlink:href=\"classpath:a.txt\"/></file>");
 
         disseminator.disseminateZipForMets(stringAsStream(xml), out);
     }
 
     @Test
     public void File_elements_without_USE_ARCHIVE_should_not_be_zipped() throws Exception {
-        String xml = buildMetsXml("<file><FLocat href=\"classpath:a.txt\"/></file>");
+        String xml = buildMetsXml("<file><FLocat xlink:href=\"classpath:a.txt\"/></file>");
 
         disseminator.disseminateZipForMets(stringAsStream(xml), out);
 
         ZipInputStream zis = new ZipInputStream(in);
         assertNull("ZIP should not contain entries", zis.getNextEntry());
+    }
+
+    @Test
+    public void File_name_has_no_spaces_or_braces() throws Exception {
+        String xml = buildMetsXml("<file USE=\"ARCHIVE\">" +
+                "<FLocat xlink:href=\"classpath:a.txt\" xlink:title=\"(when you hear the words) brace brace\"/>" +
+                "</file>");
+
+        disseminator.disseminateZipForMets(stringAsStream(xml), out);
+
+        ZipInputStream zis = new ZipInputStream(in);
+        ZipEntry zipEntry = zis.getNextEntry();
+        String fileName = zipEntry.getName();
+
+        assertThat("Filename should not contain space or braces.", fileName, not(matchesPattern("[\\(\\)\\s]")));
     }
 
     @Test
@@ -119,13 +137,13 @@ public class ZipDisseminatorTest {
         ZipInputStream zis = new ZipInputStream(in);
         ZipEntry ze1 = zis.getNextEntry();
         ZipEntry ze2 = zis.getNextEntry();
-        assertEquals("Plain text title A", ze1.getName());
-        assertEquals("Plain text title B", ze2.getName());
+        assertEquals("Plain-text-title-A", ze1.getName());
+        assertEquals("Plain-text-title-B", ze2.getName());
     }
 
     private String buildMetsXml(String... files) {
         StringBuilder sb = new StringBuilder()
-                .append("<mets xmlns=\"http://www.loc.gov/METS/\">")
+                .append("<mets xmlns=\"http://www.loc.gov/METS/\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">")
                 .append("<fileSec>")
                 .append("<fileGrp USE=\"DOWNLOAD\">");
 
