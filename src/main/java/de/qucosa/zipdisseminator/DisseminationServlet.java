@@ -85,6 +85,9 @@ public class DisseminationServlet extends HttpServlet {
                     new FilenameFilterConfiguration()
                             .replaceAll("[\\(\\)]", "")
                             .replaceAll("\\s", "-")
+                            .appendMissingFileExtension("text/html", "html")
+                            .appendMissingFileExtension("text/plain", "txt")
+                            .appendMissingFileExtension("application/pdf", "pdf")
                     : FilenameFilterConfiguration.EMPTY;
 
             try (CloseableHttpResponse response = httpClient.execute(new HttpGet(metsDocumentURI))) {

@@ -71,7 +71,7 @@ public class ZipDisseminator {
             throw new RuntimeException(e);
         }
 
-        List<DocumentFile> documentFiles = getDocumentFiles(metsDocument, xPathFLocat);
+        List<DocumentFile> documentFiles = getDocumentFiles(metsDocument);
 
         for (DocumentFile f : documentFiles) {
             if (!conf.replacements().isEmpty()) {
@@ -82,12 +82,22 @@ public class ZipDisseminator {
                 }
                 f.setTitle(filtered);
             }
+            if (!conf.extensions().isEmpty()) {
+                String filename = f.getTitle();
+                if (!filename.matches("(.*)\\.(.+)$")) {
+                    if (conf.extensions().containsKey(f.getContentType())) {
+                        String ext = conf.extensions().get(f.getContentType());
+                        filename += "." + ext;
+                    }
+                }
+                f.setTitle(filename);
+            }
         }
 
         zip(documentFiles, zipOutputStream);
     }
 
-    private List<DocumentFile> getDocumentFiles(Document metsDocument, String xPath) throws InvalidMETSDocument {
+    private List<DocumentFile> getDocumentFiles(Document metsDocument) throws InvalidMETSDocument {
         List<DocumentFile> documentFileList = new ArrayList<>();
 
         XPathFactory xPathFactory = XPathFactory.newInstance();
@@ -99,7 +109,7 @@ public class ZipDisseminator {
         XPathExpression xPathExpr;
         NodeList nodeFLocat;
         try {
-            xPathExpr = xpath.compile(xPath);
+            xPathExpr = xpath.compile(ZipDisseminator.xPathFLocat);
             nodeFLocat = (NodeList) xPathExpr.evaluate(metsDocument, XPathConstants.NODESET);
         } catch (XPathExpressionException e) {
             // if hard coded xpath is incorrect, the program is broken
@@ -108,10 +118,10 @@ public class ZipDisseminator {
 
         try {
             for (int k = 0; k < nodeFLocat.getLength(); k++) {
-                Element element = (Element) nodeFLocat.item(k);
+                Element flocat = (Element) nodeFLocat.item(k);
 
-                String href = element.getAttributeNS(Namespaces.XLIN.getURI(), "href");
-                String title = element.getAttributeNS(Namespaces.XLIN.getURI(), "title");
+                String href = flocat.getAttributeNS(Namespaces.XLIN.getURI(), "href");
+                String title = flocat.getAttributeNS(Namespaces.XLIN.getURI(), "title");
 
                 if (href.isEmpty() || title.isEmpty()) {
                     throw new InvalidMETSDocument("Cannot obtain content links from METS document: " + metsDocument.getDocumentURI());
@@ -120,6 +130,10 @@ public class ZipDisseminator {
                 DocumentFile documentFile = new DocumentFile();
                 documentFile.setContentUrl(new URL(href));
                 documentFile.setTitle(title);
+
+                Element file = (Element) flocat.getParentNode();
+                String contentType = file.getAttribute("MIMETYPE");
+                documentFile.setContentType(contentType);
 
                 documentFileList.add(documentFile);
             }

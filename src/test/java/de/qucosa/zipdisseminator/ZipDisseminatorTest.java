@@ -147,6 +147,33 @@ public class ZipDisseminatorTest {
         assertEquals("Plain text title B", ze2.getName());
     }
 
+    @Test
+    public void Appends_mimetype_specific_file_extensions_if_missing() throws Exception {
+        String template = "<file USE=\"ARCHIVE\" MIMETYPE=\"%s\"><FLocat xlink:href=\"classpath:c\" xlink:title=\"%s\"/></file>";
+        String xml = buildMetsXml(
+                String.format(template, "text/html", "A"),
+                String.format(template, "text/plain", "B"),
+                String.format(template, "application/pdf", "C"),
+                String.format(template, "application/pdf", "D.pdf"));
+
+        FilenameFilterConfiguration filenameFilterConfiguration = new FilenameFilterConfiguration()
+                .appendMissingFileExtension("text/html", "html")
+                .appendMissingFileExtension("text/plain", "txt")
+                .appendMissingFileExtension("application/pdf", "pdf");
+
+        disseminator.disseminateZipForMets(stringAsStream(xml), out, filenameFilterConfiguration);
+
+        ZipInputStream zis = new ZipInputStream(in);
+        ZipEntry ze1 = zis.getNextEntry();
+        ZipEntry ze2 = zis.getNextEntry();
+        ZipEntry ze3 = zis.getNextEntry();
+        ZipEntry ze4 = zis.getNextEntry();
+        assertEquals("A.html", ze1.getName());
+        assertEquals("B.txt", ze2.getName());
+        assertEquals("C.pdf", ze3.getName());
+        assertEquals("D.pdf", ze4.getName());
+    }
+
     private String buildMetsXml(String... files) {
         StringBuilder sb = new StringBuilder()
                 .append("<mets xmlns=\"http://www.loc.gov/METS/\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">")

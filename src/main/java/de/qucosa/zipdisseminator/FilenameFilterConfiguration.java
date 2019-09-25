@@ -24,12 +24,21 @@ import java.util.Map;
 class FilenameFilterConfiguration {
 
     static final FilenameFilterConfiguration EMPTY = new FilenameFilterConfiguration();
+    private LinkedHashMap<String, String> extensions = new LinkedHashMap<>();
+    private LinkedHashMap<String, String> replacements = new LinkedHashMap<>();
+
+    public LinkedHashMap<String, String> extensions() {
+        return extensions;
+    }
+
+    FilenameFilterConfiguration appendMissingFileExtension(String mimetype, String extension) {
+        extensions.put(mimetype, extension);
+        return this;
+    }
 
     Map<String, String> replacements() {
         return Collections.unmodifiableMap(replacements);
     }
-
-    private LinkedHashMap<String, String> replacements = new LinkedHashMap<>();
 
     FilenameFilterConfiguration replaceAll(String regexp, String replace) {
         replacements.put(regexp, replace);

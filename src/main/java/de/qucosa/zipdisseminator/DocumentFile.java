@@ -22,9 +22,18 @@ import java.net.URL;
 public class DocumentFile {
     private String checksum;
     private String checksumType;
+    private String contentType;
     private URL contentUrl;
     private boolean isUseArchive;
     private String title;
+
+    public String getContentType() {
+        return contentType;
+    }
+
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
+    }
 
     public URL getContentUrl() {
         return contentUrl;
@@ -65,6 +74,4 @@ public class DocumentFile {
     public void setTitle(String title) {
         this.title = title;
     }
-
-
 }
