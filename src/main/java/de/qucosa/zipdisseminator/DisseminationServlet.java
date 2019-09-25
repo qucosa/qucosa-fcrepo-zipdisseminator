@@ -42,6 +42,7 @@ import static javax.servlet.http.HttpServletResponse.SC_OK;
 public class DisseminationServlet extends HttpServlet {
 
     private static final String REQUEST_PARAM_METS_URL = "metsurl";
+    private static final String REQUEST_PARAM_FILENAME_FILTERING = "xmdpfilter";
     private static final String zipFileName = "content.zip";
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
@@ -70,11 +71,21 @@ public class DisseminationServlet extends HttpServlet {
 
             URI metsDocumentURI;
             try {
-                metsDocumentURI = new URL(getRequiredRequestParameterValue(req, REQUEST_PARAM_METS_URL)).toURI();
+                String metsRequestParam = getRequestParameterValue(req, REQUEST_PARAM_METS_URL, true);
+                metsDocumentURI = new URL(metsRequestParam).toURI();
             } catch (MissingRequiredParameter | URISyntaxException e) {
                 sendError(resp, SC_BAD_REQUEST, e.getMessage());
                 return;
             }
+
+            boolean xmdpFilenameFiltering =
+                    Boolean.parseBoolean(getRequestParameterValue(req, REQUEST_PARAM_FILENAME_FILTERING, false));
+
+            final FilenameFilterConfiguration filterConfiguration = (xmdpFilenameFiltering) ?
+                    new FilenameFilterConfiguration()
+                            .replaceAll("[\\(\\)]", "")
+                            .replaceAll("\\s", "-")
+                    : FilenameFilterConfiguration.EMPTY;
 
             try (CloseableHttpResponse response = httpClient.execute(new HttpGet(metsDocumentURI))) {
 
@@ -84,7 +95,10 @@ public class DisseminationServlet extends HttpServlet {
                     resp.setContentType("application/zip");
 
                     ZipDisseminator zipDisseminator = new ZipDisseminator();
-                    zipDisseminator.disseminateZipForMets(response.getEntity().getContent(), resp.getOutputStream());
+                    zipDisseminator.disseminateZipForMets(
+                            response.getEntity().getContent(),
+                            resp.getOutputStream(),
+                            filterConfiguration);
 
                     resp.setStatus(SC_OK);
                 } else {
@@ -106,10 +120,9 @@ public class DisseminationServlet extends HttpServlet {
         resp.getWriter().print(msg);
     }
 
-    private String getRequiredRequestParameterValue(ServletRequest request, String name)
-            throws MissingRequiredParameter {
+    private String getRequestParameterValue(ServletRequest request, String name, boolean required) throws MissingRequiredParameter {
         final String v = request.getParameter(name);
-        if (v == null || v.isEmpty()) {
+        if (required && (v == null || v.isEmpty())) {
             throw new MissingRequiredParameter("Missing parameter '" + REQUEST_PARAM_METS_URL + "'");
         }
         return v;
