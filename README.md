@@ -17,6 +17,10 @@ This will generate a deployable WAR file `target/qucosa-fcrepo-zipfiledisseminat
 The deployed service accepts a `metsurl` parameter, which must contain the URL
 encoded location of a valid METS file.
 
+### DNB XMetaDissPlus file name filter
+
+If a `xmdpfilter=true` query parameter is given, all filenames are filtered for the DNB XMetaDissPlus transfer file protocol. All whitespace characters are replaced by `-` and round brackets are removed. Thus the file name `Hello (World)` would be changed to `Hello-World` in the resulting ZIP file.  
+
 ## Licence
 
 The program is licenced under [GPLv3](http://www.gnu.org/licenses/gpl.html). See the COPYING file for details.

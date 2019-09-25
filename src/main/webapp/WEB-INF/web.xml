@@ -21,20 +21,6 @@
          xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
 		  http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" version="2.5">
 
-    <!--
-        Configures the URL to be used when emitting URLs locating the actual content of
-        a datastream. This is useful, if the Fedora Repository is not available at localhost:8080.
-
-        If no 'fedora.content.url' is given, 'fedora.host.url' is used.
-
-        This context-param is commented out to ensure there is no default setting
-        which would otherwise hide the fact that there is no setting.
-    -->
-    <!--<context-param>-->
-    <!--<param-name>fedora.content.url</param-name>-->
-    <!--<param-value>http://localhost:8080/fedora</param-value>-->
-    <!--</context-param>-->
-
     <servlet>
         <servlet-name>DisseminationServlet</servlet-name>
         <servlet-class>de.qucosa.zipdisseminator.DisseminationServlet</servlet-class>
