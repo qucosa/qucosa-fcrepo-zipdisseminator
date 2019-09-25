@@ -51,8 +51,14 @@ public class ZipDisseminator {
         documentBuilderFactory.setNamespaceAware(true);
     }
 
-    void disseminateZipForMets(InputStream metsInputStream, OutputStream zipOutputStream)
-            throws InvalidMETSDocument, IOException {
+    void disseminateZipForMets(InputStream in, OutputStream out) throws InvalidMETSDocument, IOException {
+        disseminateZipForMets(in, out, FilenameFilterConfiguration.EMPTY);
+    }
+
+    void disseminateZipForMets(
+            InputStream metsInputStream,
+            OutputStream zipOutputStream,
+            FilenameFilterConfiguration conf) throws InvalidMETSDocument, IOException {
 
         Document metsDocument;
         try {
@@ -66,6 +72,17 @@ public class ZipDisseminator {
         }
 
         List<DocumentFile> documentFiles = getDocumentFiles(metsDocument, xPathFLocat);
+
+        for (DocumentFile f : documentFiles) {
+            if (!conf.replacements().isEmpty()) {
+                String filtered = f.getTitle();
+                for (String k : conf.replacements().keySet()) {
+                    String v = conf.replacements().get(k);
+                    filtered = filtered.replaceAll(k, v);
+                }
+                f.setTitle(filtered);
+            }
+        }
 
         zip(documentFiles, zipOutputStream);
     }
@@ -100,13 +117,9 @@ public class ZipDisseminator {
                     throw new InvalidMETSDocument("Cannot obtain content links from METS document: " + metsDocument.getDocumentURI());
                 }
 
-                String filteredFileName = title
-                        .replaceAll("[\\(\\)]", "")
-                        .replaceAll("\\s", "-");
-
                 DocumentFile documentFile = new DocumentFile();
                 documentFile.setContentUrl(new URL(href));
-                documentFile.setTitle(filteredFileName);
+                documentFile.setTitle(title);
 
                 documentFileList.add(documentFile);
             }

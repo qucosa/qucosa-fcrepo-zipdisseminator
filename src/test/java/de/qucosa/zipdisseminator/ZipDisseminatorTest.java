@@ -24,6 +24,8 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
+import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
@@ -121,13 +123,17 @@ public class ZipDisseminatorTest {
                 "<FLocat xlink:href=\"classpath:a.txt\" xlink:title=\"(when you hear the words) brace brace\"/>" +
                 "</file>");
 
-        disseminator.disseminateZipForMets(stringAsStream(xml), out);
+        FilenameFilterConfiguration filenameFilterConfiguration = new FilenameFilterConfiguration()
+            .replaceAll("[\\(\\)]", "")
+            .replaceAll("\\s", "-");
+
+        disseminator.disseminateZipForMets(stringAsStream(xml), out, filenameFilterConfiguration);
 
         ZipInputStream zis = new ZipInputStream(in);
         ZipEntry zipEntry = zis.getNextEntry();
         String fileName = zipEntry.getName();
 
-        assertThat("Filename should not contain space or braces.", fileName, not(matchesPattern("[\\(\\)\\s]")));
+        assertThat("Filename should not contain space or braces.", fileName, not(matchesPattern("(.*)[\\(\\)\\s](.*)")));
     }
 
     @Test
@@ -137,8 +143,8 @@ public class ZipDisseminatorTest {
         ZipInputStream zis = new ZipInputStream(in);
         ZipEntry ze1 = zis.getNextEntry();
         ZipEntry ze2 = zis.getNextEntry();
-        assertEquals("Plain-text-title-A", ze1.getName());
-        assertEquals("Plain-text-title-B", ze2.getName());
+        assertEquals("Plain text title A", ze1.getName());
+        assertEquals("Plain text title B", ze2.getName());
     }
 
     private String buildMetsXml(String... files) {
