@@ -24,10 +24,10 @@ import java.util.Map;
 
 public final class Namespaces {
 
-    public static final Namespace METS = Namespace.getNamespace("mets", "http://www.loc.gov/METS/");
-    public static final Namespace MEXT = Namespace.getNamespace("mext", "http://slub-dresden.de/mets");
-    public static final Namespace MODS = Namespace.getNamespace("mods", "http://www.loc.gov/mods/v3");
-    public static final Namespace SLUB = Namespace.getNamespace("slub", "http://slub-dresden.de/");
+    private static final Namespace METS = Namespace.getNamespace("mets", "http://www.loc.gov/METS/");
+    private static final Namespace MEXT = Namespace.getNamespace("mext", "http://slub-dresden.de/mets");
+    private static final Namespace MODS = Namespace.getNamespace("mods", "http://www.loc.gov/mods/v3");
+    private static final Namespace SLUB = Namespace.getNamespace("slub", "http://slub-dresden.de/");
     public static final Namespace XLIN = Namespace.getNamespace("xlin", "http://www.w3.org/1999/xlink");
 
     private Namespaces() {

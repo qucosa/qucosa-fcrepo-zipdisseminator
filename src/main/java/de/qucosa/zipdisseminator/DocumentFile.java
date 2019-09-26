@@ -19,7 +19,7 @@ package de.qucosa.zipdisseminator;
 
 import java.net.URL;
 
-public class DocumentFile {
+class DocumentFile {
     private String checksum;
     private String checksumType;
     private String contentType;
