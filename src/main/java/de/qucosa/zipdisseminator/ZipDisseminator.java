@@ -44,7 +44,7 @@ import java.util.zip.ZipOutputStream;
 class ZipDisseminator {
 
     private static final String xPathFLocat = "//mets:fileSec/mets:fileGrp[@USE='DOWNLOAD']/mets:file[@USE='ARCHIVE']/mets:FLocat";
-    private DocumentBuilderFactory documentBuilderFactory;
+    private final DocumentBuilderFactory documentBuilderFactory;
 
     public ZipDisseminator() {
         documentBuilderFactory = DocumentBuilderFactory.newInstance();

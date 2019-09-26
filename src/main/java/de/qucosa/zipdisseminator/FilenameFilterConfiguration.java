@@ -24,8 +24,8 @@ import java.util.Map;
 class FilenameFilterConfiguration {
 
     static final FilenameFilterConfiguration EMPTY = new FilenameFilterConfiguration();
-    private LinkedHashMap<String, String> extensions = new LinkedHashMap<>();
-    private LinkedHashMap<String, String> replacements = new LinkedHashMap<>();
+    private final LinkedHashMap<String, String> extensions = new LinkedHashMap<>();
+    private final LinkedHashMap<String, String> replacements = new LinkedHashMap<>();
 
     public LinkedHashMap<String, String> extensions() {
         return extensions;
