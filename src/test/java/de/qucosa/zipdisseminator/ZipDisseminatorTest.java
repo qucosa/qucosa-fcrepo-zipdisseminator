@@ -35,8 +35,11 @@ import java.net.URLStreamHandlerFactory;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
 public class ZipDisseminatorTest {
 
@@ -90,26 +93,45 @@ public class ZipDisseminatorTest {
 
     @Test(expected = InvalidMETSDocument.class)
     public void File_elements_without_href_throws_exception() throws Exception {
-        String xml = buildMetsXml("<file USE=\"ARCHIVE\"><FLocat title=\"some title\"/></file>");
+        String xml = buildMetsXml("<file USE=\"ARCHIVE\"><FLocat xlink:title=\"some title\"/></file>");
 
         disseminator.disseminateZipForMets(stringAsStream(xml), out);
     }
 
     @Test(expected = InvalidMETSDocument.class)
     public void File_elements_without_title_throws_exception() throws Exception {
-        String xml = buildMetsXml("<file USE=\"ARCHIVE\"><FLocat href=\"classpath:a.txt\"/></file>");
+        String xml = buildMetsXml("<file USE=\"ARCHIVE\"><FLocat xlink:href=\"classpath:a.txt\"/></file>");
 
         disseminator.disseminateZipForMets(stringAsStream(xml), out);
     }
 
     @Test
     public void File_elements_without_USE_ARCHIVE_should_not_be_zipped() throws Exception {
-        String xml = buildMetsXml("<file><FLocat href=\"classpath:a.txt\"/></file>");
+        String xml = buildMetsXml("<file><FLocat xlink:href=\"classpath:a.txt\"/></file>");
 
         disseminator.disseminateZipForMets(stringAsStream(xml), out);
 
         ZipInputStream zis = new ZipInputStream(in);
         assertNull("ZIP should not contain entries", zis.getNextEntry());
+    }
+
+    @Test
+    public void File_name_has_no_spaces_or_braces() throws Exception {
+        String xml = buildMetsXml("<file USE=\"ARCHIVE\">" +
+                "<FLocat xlink:href=\"classpath:a.txt\" xlink:title=\"(when you hear the words) brace brace\"/>" +
+                "</file>");
+
+        FilenameFilterConfiguration filenameFilterConfiguration = new FilenameFilterConfiguration()
+            .replaceAll("[\\(\\)]", "")
+            .replaceAll("\\s", "-");
+
+        disseminator.disseminateZipForMets(stringAsStream(xml), out, filenameFilterConfiguration);
+
+        ZipInputStream zis = new ZipInputStream(in);
+        ZipEntry zipEntry = zis.getNextEntry();
+        String fileName = zipEntry.getName();
+
+        assertThat("Filename should not contain space or braces.", fileName, not(matchesPattern("(.*)[\\(\\)\\s](.*)")));
     }
 
     @Test
@@ -123,9 +145,36 @@ public class ZipDisseminatorTest {
         assertEquals("Plain text title B", ze2.getName());
     }
 
+    @Test
+    public void Appends_mimetype_specific_file_extensions_if_missing() throws Exception {
+        String template = "<file USE=\"ARCHIVE\" MIMETYPE=\"%s\"><FLocat xlink:href=\"classpath:c\" xlink:title=\"%s\"/></file>";
+        String xml = buildMetsXml(
+                String.format(template, "text/html", "A"),
+                String.format(template, "text/plain", "B"),
+                String.format(template, "application/pdf", "C"),
+                String.format(template, "application/pdf", "D.pdf"));
+
+        FilenameFilterConfiguration filenameFilterConfiguration = new FilenameFilterConfiguration()
+                .appendMissingFileExtension("text/html", "html")
+                .appendMissingFileExtension("text/plain", "txt")
+                .appendMissingFileExtension("application/pdf", "pdf");
+
+        disseminator.disseminateZipForMets(stringAsStream(xml), out, filenameFilterConfiguration);
+
+        ZipInputStream zis = new ZipInputStream(in);
+        ZipEntry ze1 = zis.getNextEntry();
+        ZipEntry ze2 = zis.getNextEntry();
+        ZipEntry ze3 = zis.getNextEntry();
+        ZipEntry ze4 = zis.getNextEntry();
+        assertEquals("A.html", ze1.getName());
+        assertEquals("B.txt", ze2.getName());
+        assertEquals("C.pdf", ze3.getName());
+        assertEquals("D.pdf", ze4.getName());
+    }
+
     private String buildMetsXml(String... files) {
         StringBuilder sb = new StringBuilder()
-                .append("<mets xmlns=\"http://www.loc.gov/METS/\">")
+                .append("<mets xmlns=\"http://www.loc.gov/METS/\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">")
                 .append("<fileSec>")
                 .append("<fileGrp USE=\"DOWNLOAD\">");
 

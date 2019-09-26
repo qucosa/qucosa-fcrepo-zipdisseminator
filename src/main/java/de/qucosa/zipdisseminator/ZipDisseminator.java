@@ -41,18 +41,24 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-public class ZipDisseminator {
+class ZipDisseminator {
 
     private static final String xPathFLocat = "//mets:fileSec/mets:fileGrp[@USE='DOWNLOAD']/mets:file[@USE='ARCHIVE']/mets:FLocat";
-    private DocumentBuilderFactory documentBuilderFactory;
+    private final DocumentBuilderFactory documentBuilderFactory;
 
     public ZipDisseminator() {
         documentBuilderFactory = DocumentBuilderFactory.newInstance();
         documentBuilderFactory.setNamespaceAware(true);
     }
 
-    void disseminateZipForMets(InputStream metsInputStream, OutputStream zipOutputStream)
-            throws InvalidMETSDocument, IOException {
+    void disseminateZipForMets(InputStream in, OutputStream out) throws InvalidMETSDocument, IOException {
+        disseminateZipForMets(in, out, FilenameFilterConfiguration.EMPTY);
+    }
+
+    void disseminateZipForMets(
+            InputStream metsInputStream,
+            OutputStream zipOutputStream,
+            FilenameFilterConfiguration conf) throws InvalidMETSDocument, IOException {
 
         Document metsDocument;
         try {
@@ -65,12 +71,33 @@ public class ZipDisseminator {
             throw new RuntimeException(e);
         }
 
-        List<DocumentFile> documentFiles = getDocumentFiles(metsDocument, xPathFLocat);
+        List<DocumentFile> documentFiles = getDocumentFiles(metsDocument);
+
+        for (DocumentFile f : documentFiles) {
+            if (!conf.replacements().isEmpty()) {
+                String filtered = f.getTitle();
+                for (String k : conf.replacements().keySet()) {
+                    String v = conf.replacements().get(k);
+                    filtered = filtered.replaceAll(k, v);
+                }
+                f.setTitle(filtered);
+            }
+            if (!conf.extensions().isEmpty()) {
+                String filename = f.getTitle();
+                if (!filename.matches("(.*)\\.(.+)$")) {
+                    if (conf.extensions().containsKey(f.getContentType())) {
+                        String ext = conf.extensions().get(f.getContentType());
+                        filename += "." + ext;
+                    }
+                }
+                f.setTitle(filename);
+            }
+        }
 
         zip(documentFiles, zipOutputStream);
     }
 
-    private List<DocumentFile> getDocumentFiles(Document metsDocument, String xPath) throws InvalidMETSDocument {
+    private List<DocumentFile> getDocumentFiles(Document metsDocument) throws InvalidMETSDocument {
         List<DocumentFile> documentFileList = new ArrayList<>();
 
         XPathFactory xPathFactory = XPathFactory.newInstance();
@@ -82,7 +109,7 @@ public class ZipDisseminator {
         XPathExpression xPathExpr;
         NodeList nodeFLocat;
         try {
-            xPathExpr = xpath.compile(xPath);
+            xPathExpr = xpath.compile(ZipDisseminator.xPathFLocat);
             nodeFLocat = (NodeList) xPathExpr.evaluate(metsDocument, XPathConstants.NODESET);
         } catch (XPathExpressionException e) {
             // if hard coded xpath is incorrect, the program is broken
@@ -91,19 +118,24 @@ public class ZipDisseminator {
 
         try {
             for (int k = 0; k < nodeFLocat.getLength(); k++) {
-                DocumentFile documentFile = new DocumentFile();
-                String downloadUrl;
-                Element element = (Element) nodeFLocat.item(k);
-                String href = element.getAttribute("xlin:href");
-                String title = element.getAttribute("xlin:title");
-                if (!href.isEmpty() || !title.isEmpty()) {
-                    downloadUrl = href;
-                    documentFile.setContentUrl(new URL(downloadUrl));
-                    documentFile.setTitle(title);
-                    documentFileList.add(documentFile);
-                } else {
+                Element flocat = (Element) nodeFLocat.item(k);
+
+                String href = flocat.getAttributeNS(Namespaces.XLIN.getURI(), "href");
+                String title = flocat.getAttributeNS(Namespaces.XLIN.getURI(), "title");
+
+                if (href.isEmpty() || title.isEmpty()) {
                     throw new InvalidMETSDocument("Cannot obtain content links from METS document: " + metsDocument.getDocumentURI());
                 }
+
+                DocumentFile documentFile = new DocumentFile();
+                documentFile.setContentUrl(new URL(href));
+                documentFile.setTitle(title);
+
+                Element file = (Element) flocat.getParentNode();
+                String contentType = file.getAttribute("MIMETYPE");
+                documentFile.setContentType(contentType);
+
+                documentFileList.add(documentFile);
             }
         } catch (MalformedURLException e) {
             // throw on invalid URLs in METS document

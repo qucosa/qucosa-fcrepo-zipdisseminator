@@ -19,12 +19,18 @@ package de.qucosa.zipdisseminator;
 
 import java.net.URL;
 
-public class DocumentFile {
-    private String checksum;
-    private String checksumType;
+class DocumentFile {
+    private String contentType;
     private URL contentUrl;
-    private boolean isUseArchive;
     private String title;
+
+    public String getContentType() {
+        return contentType;
+    }
+
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
+    }
 
     public URL getContentUrl() {
         return contentUrl;
@@ -34,30 +40,6 @@ public class DocumentFile {
         this.contentUrl = contentUrl;
     }
 
-    public boolean isUseArchive() {
-        return isUseArchive;
-    }
-
-    public void setUseArchive(boolean useArchive) {
-        isUseArchive = useArchive;
-    }
-
-    public String getChecksumType() {
-        return checksumType;
-    }
-
-    public void setChecksumType(String checksumType) {
-        this.checksumType = checksumType;
-    }
-
-    public String getChecksum() {
-        return checksum;
-    }
-
-    public void setChecksum(String checksum) {
-        this.checksum = checksum;
-    }
-
     public String getTitle() {
         return title;
     }
@@ -65,6 +47,4 @@ public class DocumentFile {
     public void setTitle(String title) {
         this.title = title;
     }
-
-
 }
