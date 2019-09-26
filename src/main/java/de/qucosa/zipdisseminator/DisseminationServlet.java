@@ -88,6 +88,7 @@ public class DisseminationServlet extends HttpServlet {
                             .appendMissingFileExtension("text/html", "html")
                             .appendMissingFileExtension("text/plain", "txt")
                             .appendMissingFileExtension("application/pdf", "pdf")
+                            .appendMissingFileExtension("application/postscript", "ps")
                     : FilenameFilterConfiguration.EMPTY;
 
             try (CloseableHttpResponse response = httpClient.execute(new HttpGet(metsDocumentURI))) {
