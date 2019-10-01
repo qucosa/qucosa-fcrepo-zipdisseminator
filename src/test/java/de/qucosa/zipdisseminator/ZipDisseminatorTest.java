@@ -172,6 +172,23 @@ public class ZipDisseminatorTest {
         assertEquals("D.pdf", ze4.getName());
     }
 
+    @Test
+    public void Filter_defined_file_names() throws Exception {
+        String template = "<file USE=\"ARCHIVE\" MIMETYPE=\"%s\"><FLocat xlink:href=\"classpath:c\" xlink:title=\"%s\"/></file>";
+        String xml = buildMetsXml(
+                String.format(template, "text/plain", "Digitale Signatur"),
+                String.format(template, "text/plain", "signatur.txt.asc"));
+
+        FilenameFilterConfiguration filenameFilterConfiguration = new FilenameFilterConfiguration()
+                .reject("text/plain", "Digitale Signatur")
+                .reject("text/plain", "signatur.txt.asc");
+
+        disseminator.disseminateZipForMets(stringAsStream(xml), out, filenameFilterConfiguration);
+
+        ZipInputStream zis = new ZipInputStream(in);
+        assertNull("No signature files should be includes in ZIP file.", zis.getNextEntry());
+    }
+
     private String buildMetsXml(String... files) {
         StringBuilder sb = new StringBuilder()
                 .append("<mets xmlns=\"http://www.loc.gov/METS/\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">")

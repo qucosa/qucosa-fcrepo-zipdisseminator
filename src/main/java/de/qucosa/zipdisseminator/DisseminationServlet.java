@@ -85,6 +85,8 @@ public class DisseminationServlet extends HttpServlet {
                     new FilenameFilterConfiguration()
                             .replaceAll("[\\(\\)]", "")
                             .replaceAll("\\s", "-")
+                            .reject("text/plain", "Digitale Signatur")
+                            .reject("text/plain", "signatur.txt.asc")
                             .appendMissingFileExtension("text/html", "html")
                             .appendMissingFileExtension("text/plain", "txt")
                             .appendMissingFileExtension("application/pdf", "pdf")

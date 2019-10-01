@@ -71,7 +71,7 @@ class ZipDisseminator {
             throw new RuntimeException(e);
         }
 
-        List<DocumentFile> documentFiles = getDocumentFiles(metsDocument);
+        List<DocumentFile> documentFiles = getDocumentFiles(metsDocument, conf.filter());
 
         for (DocumentFile f : documentFiles) {
             if (!conf.replacements().isEmpty()) {
@@ -97,7 +97,9 @@ class ZipDisseminator {
         zip(documentFiles, zipOutputStream);
     }
 
-    private List<DocumentFile> getDocumentFiles(Document metsDocument) throws InvalidMETSDocument {
+    private List<DocumentFile> getDocumentFiles(Document metsDocument, FileFilter fileFilter)
+            throws InvalidMETSDocument {
+
         List<DocumentFile> documentFileList = new ArrayList<>();
 
         XPathFactory xPathFactory = XPathFactory.newInstance();
@@ -135,7 +137,7 @@ class ZipDisseminator {
                 String contentType = file.getAttribute("MIMETYPE");
                 documentFile.setContentType(contentType);
 
-                documentFileList.add(documentFile);
+                if (fileFilter.accepts(contentType, title)) documentFileList.add(documentFile);
             }
         } catch (MalformedURLException e) {
             // throw on invalid URLs in METS document

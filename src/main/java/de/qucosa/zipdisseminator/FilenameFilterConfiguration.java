@@ -19,16 +19,36 @@ package de.qucosa.zipdisseminator;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 
 class FilenameFilterConfiguration {
 
     static final FilenameFilterConfiguration EMPTY = new FilenameFilterConfiguration();
     private final LinkedHashMap<String, String> extensions = new LinkedHashMap<>();
+
+    private final FileFilter filter = new FileFilter() {
+        private LinkedHashSet<String> rejections = new LinkedHashSet<>();
+
+        @Override
+        public void reject(String mimetype, String filename) {
+            rejections.add(mimetype.toLowerCase() + "::" + filename);
+        }
+
+        @Override
+        public boolean accepts(String mimeType, String filename) {
+            return !rejections.contains(mimeType.toLowerCase() + "::" + filename);
+        }
+    };
     private final LinkedHashMap<String, String> replacements = new LinkedHashMap<>();
 
-    public LinkedHashMap<String, String> extensions() {
+    LinkedHashMap<String, String> extensions() {
         return extensions;
+    }
+
+    FilenameFilterConfiguration reject(String mimetype, String filename) {
+        filter.reject(mimetype, filename);
+        return this;
     }
 
     FilenameFilterConfiguration appendMissingFileExtension(String mimetype, String extension) {
@@ -43,6 +63,10 @@ class FilenameFilterConfiguration {
     FilenameFilterConfiguration replaceAll(String regexp, String replace) {
         replacements.put(regexp, replace);
         return this;
+    }
+
+    FileFilter filter() {
+        return filter;
     }
 
 }
