@@ -18,7 +18,7 @@
 package de.qucosa.zipdisseminator;
 
 interface FileFilter {
-    boolean accepts(String mimetype, String filename);
+    boolean accepts(String filename, String mimetype);
 
-    void reject(String mimetype, String filename);
+    String transformName(String filename, String mimetype);
 }
