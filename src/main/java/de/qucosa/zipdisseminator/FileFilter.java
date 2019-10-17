@@ -17,8 +17,12 @@
 
 package de.qucosa.zipdisseminator;
 
+import java.util.Set;
+
 interface FileFilter {
     boolean accepts(String filename, String mimetype);
 
     String transformName(String filename, String mimetype);
+
+    Set<String> exclusiveMimetypes(Set<String> presentMimeTypes);
 }

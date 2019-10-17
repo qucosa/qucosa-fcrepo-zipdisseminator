@@ -20,12 +20,19 @@ package de.qucosa.zipdisseminator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
 
 class FileFilterBuilder {
 
     private final HashMap<String, String> extensions = new HashMap<>();
     private final HashSet<String> rejections = new HashSet<>();
     private final ArrayList<String[]> replacements = new ArrayList<>();
+    private final HashSet<String> exclusives = new HashSet<>();
+
+    FileFilterBuilder exclusiveMimeTypeIfPresent(String mimetype) {
+        exclusives.add(mimetype);
+        return this;
+    }
 
     FileFilterBuilder reject(String mimetype, String filename) {
         rejections.add(filename + "::" + mimetype);
@@ -58,6 +65,17 @@ class FileFilterBuilder {
                 if (extensions.containsKey(mimetype)) {
                     if (!filename.matches("(.*)\\.(.+)$")) {
                         result += "." + extensions.get(mimetype);
+                    }
+                }
+                return result;
+            }
+
+            @Override
+            public Set<String> exclusiveMimetypes(final Set<String> presentMimeTypes) {
+                HashSet<String> result = new HashSet<>();
+                for (String exclusive : exclusives) {
+                    if (presentMimeTypes.contains(exclusive)) {
+                        result.add(exclusive);
                     }
                 }
                 return result;

@@ -168,6 +168,40 @@ public class ZipDisseminatorTest {
         assertNull("No signature files should be includes in ZIP file.", zis.getNextEntry());
     }
 
+    @Test
+    public void Filters_out_everything_but_exclusive_mimetypes() throws Exception {
+        String template = "<file USE=\"ARCHIVE\" MIMETYPE=\"%s\"><FLocat xlink:href=\"classpath:c\" xlink:title=\"%s\"/></file>";
+        String xml = buildMetsXml(
+                String.format(template, "text/plain", "A"),
+                String.format(template, "application/pdf", "B"));
+
+        FileFilterBuilder fileFilterBuilder = new FileFilterBuilder()
+                .exclusiveMimeTypeIfPresent("application/pdf");
+
+        disseminator.disseminateZipForMets(stringAsStream(xml), out, fileFilterBuilder.build());
+
+        ZipInputStream zis = new ZipInputStream(in);
+        assertEquals("Only the PDF file should be included", "B", zis.getNextEntry().getName());
+        assertNull("There should be only one entry", zis.getNextEntry());
+    }
+
+    @Test
+    public void Filter_nothing_if_exclusive_mimetypes_are_not_present() throws Exception {
+        String template = "<file USE=\"ARCHIVE\" MIMETYPE=\"%s\"><FLocat xlink:href=\"classpath:c\" xlink:title=\"%s\"/></file>";
+        String xml = buildMetsXml(
+                String.format(template, "text/plain", "A"),
+                String.format(template, "application/postscript", "B"));
+
+        FileFilterBuilder fileFilterBuilder = new FileFilterBuilder()
+                .exclusiveMimeTypeIfPresent("application/pdf");
+
+        disseminator.disseminateZipForMets(stringAsStream(xml), out, fileFilterBuilder.build());
+
+        ZipInputStream zis = new ZipInputStream(in);
+        assertEquals("Should contain file", "A", zis.getNextEntry().getName());
+        assertEquals("Should contain file", "B", zis.getNextEntry().getName());
+    }
+
     @BeforeClass
     static public void registerClasspathProtocolHandler() {
         URL.setURLStreamHandlerFactory(new URLStreamHandlerFactory() {

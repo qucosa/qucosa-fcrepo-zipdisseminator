@@ -37,7 +37,10 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -71,8 +74,31 @@ class ZipDisseminator {
             throw new RuntimeException(e);
         }
 
-        List<DocumentFile> documentFiles = getDocumentFiles(metsDocument, fileFilter);
+        List<DocumentFile> documentFiles = filterExclusiveMimetypes(
+                getDocumentFiles(metsDocument, fileFilter),
+                fileFilter);
+
         zip(documentFiles, zipOutputStream);
+    }
+
+    private List<DocumentFile> filterExclusiveMimetypes(List<DocumentFile> documentFiles, FileFilter fileFilter) {
+        Set<String> presentMimetypes = new HashSet<>();
+        for (DocumentFile documentFile : documentFiles) {
+            presentMimetypes.add(documentFile.getContentType());
+        }
+
+        Set<String> exclusiveMimetypes = fileFilter.exclusiveMimetypes(presentMimetypes);
+        if (exclusiveMimetypes.isEmpty()) {
+            return documentFiles;
+        } else {
+            LinkedList<DocumentFile> result = new LinkedList<>();
+            for (DocumentFile documentFile : documentFiles) {
+                if (exclusiveMimetypes.contains(documentFile.getContentType())) {
+                    result.add(documentFile);
+                }
+            }
+            return result;
+        }
     }
 
     private List<DocumentFile> getDocumentFiles(Document metsDocument, FileFilter fileFilter)

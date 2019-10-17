@@ -91,7 +91,8 @@ public class DisseminationServlet extends HttpServlet {
                         .appendMissingFileExtension("text/html", "html")
                         .appendMissingFileExtension("text/plain", "txt")
                         .appendMissingFileExtension("application/pdf", "pdf")
-                        .appendMissingFileExtension("application/postscript", "ps");
+                        .appendMissingFileExtension("application/postscript", "ps")
+                        .exclusiveMimeTypeIfPresent("application/pdf");
             }
             final FileFilter fileFilter = fileFilterBuilder.build();
 
