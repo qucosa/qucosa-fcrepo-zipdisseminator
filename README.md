@@ -19,7 +19,7 @@ encoded location of a valid METS file.
 
 ### DNB XMetaDissPlus file name filter
 
-If a `xmdpfilter=true` query parameter is given, all filenames are filtered for the DNB XMetaDissPlus transfer file protocol. All whitespace characters are replaced by `-` and round brackets are removed. Thus the file name `Hello (World)` would be changed to `Hello-World` in the resulting ZIP file.  
+If a `xmdpfilter=true` query parameter is given, all filenames are filtered for the DNB XMetaDissPlus transfer file protocol. All whitespace characters are replaced by `-` and round brackets are removed. Thus the file name `Hello (World)` would be changed to `Hello-World` in the resulting ZIP file. Furthermore `/` will be replaced by `-` to avoid having folders in the ZIP. Also if files with a content-type `application/pdf` are present only these files remain in the ZIP. Every other file will be filtered out.
 
 ## Licence
 
