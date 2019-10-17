@@ -81,17 +81,20 @@ public class DisseminationServlet extends HttpServlet {
             boolean xmdpFilenameFiltering =
                     Boolean.parseBoolean(getRequestParameterValue(req, REQUEST_PARAM_FILENAME_FILTERING, false));
 
-            final FilenameFilterConfiguration filterConfiguration = (xmdpFilenameFiltering) ?
-                    new FilenameFilterConfiguration()
-                            .replaceAll("[\\(\\)]", "")
-                            .replaceAll("\\s", "-")
-                            .reject("text/plain", "Digitale Signatur")
-                            .reject("text/plain", "signatur.txt.asc")
-                            .appendMissingFileExtension("text/html", "html")
-                            .appendMissingFileExtension("text/plain", "txt")
-                            .appendMissingFileExtension("application/pdf", "pdf")
-                            .appendMissingFileExtension("application/postscript", "ps")
-                    : FilenameFilterConfiguration.EMPTY;
+            final FileFilterBuilder fileFilterBuilder = new FileFilterBuilder();
+            if (xmdpFilenameFiltering) {
+                fileFilterBuilder
+                        .replaceAll("[\\(\\)]", "")
+                        .replaceAll("[\\s/]", "-")
+                        .reject("text/plain", "Digitale Signatur")
+                        .reject("text/plain", "signatur.txt.asc")
+                        .appendMissingFileExtension("text/html", "html")
+                        .appendMissingFileExtension("text/plain", "txt")
+                        .appendMissingFileExtension("application/pdf", "pdf")
+                        .appendMissingFileExtension("application/postscript", "ps")
+                        .exclusiveMimeTypeIfPresent("application/pdf");
+            }
+            final FileFilter fileFilter = fileFilterBuilder.build();
 
             try (CloseableHttpResponse response = httpClient.execute(new HttpGet(metsDocumentURI))) {
 
@@ -104,7 +107,7 @@ public class DisseminationServlet extends HttpServlet {
                     zipDisseminator.disseminateZipForMets(
                             response.getEntity().getContent(),
                             resp.getOutputStream(),
-                            filterConfiguration);
+                            fileFilter);
 
                     resp.setStatus(SC_OK);
                 } else {

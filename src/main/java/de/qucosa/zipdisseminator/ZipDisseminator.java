@@ -37,7 +37,10 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -52,13 +55,13 @@ class ZipDisseminator {
     }
 
     void disseminateZipForMets(InputStream in, OutputStream out) throws InvalidMETSDocument, IOException {
-        disseminateZipForMets(in, out, FilenameFilterConfiguration.EMPTY);
+        disseminateZipForMets(in, out, new FileFilterBuilder().build());
     }
 
     void disseminateZipForMets(
             InputStream metsInputStream,
             OutputStream zipOutputStream,
-            FilenameFilterConfiguration conf) throws InvalidMETSDocument, IOException {
+            FileFilter fileFilter) throws InvalidMETSDocument, IOException {
 
         Document metsDocument;
         try {
@@ -71,30 +74,31 @@ class ZipDisseminator {
             throw new RuntimeException(e);
         }
 
-        List<DocumentFile> documentFiles = getDocumentFiles(metsDocument, conf.filter());
-
-        for (DocumentFile f : documentFiles) {
-            if (!conf.replacements().isEmpty()) {
-                String filtered = f.getTitle();
-                for (String k : conf.replacements().keySet()) {
-                    String v = conf.replacements().get(k);
-                    filtered = filtered.replaceAll(k, v);
-                }
-                f.setTitle(filtered);
-            }
-            if (!conf.extensions().isEmpty()) {
-                String filename = f.getTitle();
-                if (!filename.matches("(.*)\\.(.+)$")) {
-                    if (conf.extensions().containsKey(f.getContentType())) {
-                        String ext = conf.extensions().get(f.getContentType());
-                        filename += "." + ext;
-                    }
-                }
-                f.setTitle(filename);
-            }
-        }
+        List<DocumentFile> documentFiles = filterExclusiveMimetypes(
+                getDocumentFiles(metsDocument, fileFilter),
+                fileFilter);
 
         zip(documentFiles, zipOutputStream);
+    }
+
+    private List<DocumentFile> filterExclusiveMimetypes(List<DocumentFile> documentFiles, FileFilter fileFilter) {
+        Set<String> presentMimetypes = new HashSet<>();
+        for (DocumentFile documentFile : documentFiles) {
+            presentMimetypes.add(documentFile.getContentType());
+        }
+
+        Set<String> exclusiveMimetypes = fileFilter.exclusiveMimetypes(presentMimetypes);
+        if (exclusiveMimetypes.isEmpty()) {
+            return documentFiles;
+        } else {
+            LinkedList<DocumentFile> result = new LinkedList<>();
+            for (DocumentFile documentFile : documentFiles) {
+                if (exclusiveMimetypes.contains(documentFile.getContentType())) {
+                    result.add(documentFile);
+                }
+            }
+            return result;
+        }
     }
 
     private List<DocumentFile> getDocumentFiles(Document metsDocument, FileFilter fileFilter)
@@ -121,7 +125,6 @@ class ZipDisseminator {
         try {
             for (int k = 0; k < nodeFLocat.getLength(); k++) {
                 Element flocat = (Element) nodeFLocat.item(k);
-
                 String href = flocat.getAttributeNS(Namespaces.XLIN.getURI(), "href");
                 String title = flocat.getAttributeNS(Namespaces.XLIN.getURI(), "title");
 
@@ -129,15 +132,18 @@ class ZipDisseminator {
                     throw new InvalidMETSDocument("Cannot obtain content links from METS document: " + metsDocument.getDocumentURI());
                 }
 
-                DocumentFile documentFile = new DocumentFile();
-                documentFile.setContentUrl(new URL(href));
-                documentFile.setTitle(title);
-
                 Element file = (Element) flocat.getParentNode();
                 String contentType = file.getAttribute("MIMETYPE");
-                documentFile.setContentType(contentType);
 
-                if (fileFilter.accepts(contentType, title)) documentFileList.add(documentFile);
+                if (fileFilter.accepts(title, contentType)) {
+                    title = fileFilter.transformName(title, contentType);
+
+                    DocumentFile documentFile = new DocumentFile();
+                    documentFile.setContentUrl(new URL(href));
+                    documentFile.setTitle(title);
+                    documentFile.setContentType(contentType);
+                    documentFileList.add(documentFile);
+                }
             }
         } catch (MalformedURLException e) {
             // throw on invalid URLs in METS document
@@ -152,7 +158,6 @@ class ZipDisseminator {
             for (DocumentFile file : fileList) {
                 InputStream is = file.getContentUrl().openStream();
 
-                // TODO FileName dependent on MIMETYPE and XLIN:TITLE
                 ZipEntry zipEntry = new ZipEntry(file.getTitle());
                 zip.putNextEntry(zipEntry);
 

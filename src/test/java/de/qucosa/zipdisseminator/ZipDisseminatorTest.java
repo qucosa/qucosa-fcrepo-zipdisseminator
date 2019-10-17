@@ -60,27 +60,6 @@ public class ZipDisseminatorTest {
         close(in);
     }
 
-    @BeforeClass
-    static public void registerClasspathProtocolHandler() {
-        URL.setURLStreamHandlerFactory(new URLStreamHandlerFactory() {
-            @Override
-            public URLStreamHandler createURLStreamHandler(String protocol) {
-                return "classpath".equals(protocol) ? new URLStreamHandler() {
-                    @Override
-                    protected URLConnection openConnection(URL u) throws IOException {
-                        ClassLoader classLoader = getClass().getClassLoader();
-                        URL url = classLoader.getResource(u.getPath());
-                        if (url != null) {
-                            return url.openConnection();
-                        } else {
-                            throw new IOException("Resource not found: " + u.toString());
-                        }
-                    }
-                } : null;
-            }
-        });
-    }
-
     @Test
     public void METS_without_files_returns_empty_ZIP() throws Exception {
         String xml = "<mets:mets xmlns:mets=\"http://www.loc.gov/METS/\"/>";
@@ -121,11 +100,11 @@ public class ZipDisseminatorTest {
                 "<FLocat xlink:href=\"classpath:a.txt\" xlink:title=\"(when you hear the words) brace brace\"/>" +
                 "</file>");
 
-        FilenameFilterConfiguration filenameFilterConfiguration = new FilenameFilterConfiguration()
+        FileFilterBuilder fileFilterBuilder = new FileFilterBuilder()
             .replaceAll("[\\(\\)]", "")
             .replaceAll("\\s", "-");
 
-        disseminator.disseminateZipForMets(stringAsStream(xml), out, filenameFilterConfiguration);
+        disseminator.disseminateZipForMets(stringAsStream(xml), out, fileFilterBuilder.build());
 
         ZipInputStream zis = new ZipInputStream(in);
         ZipEntry zipEntry = zis.getNextEntry();
@@ -154,12 +133,12 @@ public class ZipDisseminatorTest {
                 String.format(template, "application/pdf", "C"),
                 String.format(template, "application/pdf", "D.pdf"));
 
-        FilenameFilterConfiguration filenameFilterConfiguration = new FilenameFilterConfiguration()
+        FileFilterBuilder fileFilterBuilder = new FileFilterBuilder()
                 .appendMissingFileExtension("text/html", "html")
                 .appendMissingFileExtension("text/plain", "txt")
                 .appendMissingFileExtension("application/pdf", "pdf");
 
-        disseminator.disseminateZipForMets(stringAsStream(xml), out, filenameFilterConfiguration);
+        disseminator.disseminateZipForMets(stringAsStream(xml), out, fileFilterBuilder.build());
 
         ZipInputStream zis = new ZipInputStream(in);
         ZipEntry ze1 = zis.getNextEntry();
@@ -179,14 +158,69 @@ public class ZipDisseminatorTest {
                 String.format(template, "text/plain", "Digitale Signatur"),
                 String.format(template, "text/plain", "signatur.txt.asc"));
 
-        FilenameFilterConfiguration filenameFilterConfiguration = new FilenameFilterConfiguration()
+        FileFilterBuilder fileFilterBuilder = new FileFilterBuilder()
                 .reject("text/plain", "Digitale Signatur")
                 .reject("text/plain", "signatur.txt.asc");
 
-        disseminator.disseminateZipForMets(stringAsStream(xml), out, filenameFilterConfiguration);
+        disseminator.disseminateZipForMets(stringAsStream(xml), out, fileFilterBuilder.build());
 
         ZipInputStream zis = new ZipInputStream(in);
         assertNull("No signature files should be includes in ZIP file.", zis.getNextEntry());
+    }
+
+    @Test
+    public void Filters_out_everything_but_exclusive_mimetypes() throws Exception {
+        String template = "<file USE=\"ARCHIVE\" MIMETYPE=\"%s\"><FLocat xlink:href=\"classpath:c\" xlink:title=\"%s\"/></file>";
+        String xml = buildMetsXml(
+                String.format(template, "text/plain", "A"),
+                String.format(template, "application/pdf", "B"));
+
+        FileFilterBuilder fileFilterBuilder = new FileFilterBuilder()
+                .exclusiveMimeTypeIfPresent("application/pdf");
+
+        disseminator.disseminateZipForMets(stringAsStream(xml), out, fileFilterBuilder.build());
+
+        ZipInputStream zis = new ZipInputStream(in);
+        assertEquals("Only the PDF file should be included", "B", zis.getNextEntry().getName());
+        assertNull("There should be only one entry", zis.getNextEntry());
+    }
+
+    @Test
+    public void Filter_nothing_if_exclusive_mimetypes_are_not_present() throws Exception {
+        String template = "<file USE=\"ARCHIVE\" MIMETYPE=\"%s\"><FLocat xlink:href=\"classpath:c\" xlink:title=\"%s\"/></file>";
+        String xml = buildMetsXml(
+                String.format(template, "text/plain", "A"),
+                String.format(template, "application/postscript", "B"));
+
+        FileFilterBuilder fileFilterBuilder = new FileFilterBuilder()
+                .exclusiveMimeTypeIfPresent("application/pdf");
+
+        disseminator.disseminateZipForMets(stringAsStream(xml), out, fileFilterBuilder.build());
+
+        ZipInputStream zis = new ZipInputStream(in);
+        assertEquals("Should contain file", "A", zis.getNextEntry().getName());
+        assertEquals("Should contain file", "B", zis.getNextEntry().getName());
+    }
+
+    @BeforeClass
+    static public void registerClasspathProtocolHandler() {
+        URL.setURLStreamHandlerFactory(new URLStreamHandlerFactory() {
+            @Override
+            public URLStreamHandler createURLStreamHandler(String protocol) {
+                return "classpath".equals(protocol) ? new URLStreamHandler() {
+                    @Override
+                    protected URLConnection openConnection(URL u) throws IOException {
+                        ClassLoader classLoader = getClass().getClassLoader();
+                        URL url = classLoader.getResource(u.getPath());
+                        if (url != null) {
+                            return url.openConnection();
+                        } else {
+                            throw new IOException("Resource not found: " + u.toString());
+                        }
+                    }
+                } : null;
+            }
+        });
     }
 
     private String buildMetsXml(String... files) {
