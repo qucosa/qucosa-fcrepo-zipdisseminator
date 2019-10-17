@@ -85,7 +85,7 @@ public class DisseminationServlet extends HttpServlet {
             if (xmdpFilenameFiltering) {
                 fileFilterBuilder
                         .replaceAll("[\\(\\)]", "")
-                        .replaceAll("\\s", "-")
+                        .replaceAll("[\\s/]", "-")
                         .reject("text/plain", "Digitale Signatur")
                         .reject("text/plain", "signatur.txt.asc")
                         .appendMissingFileExtension("text/html", "html")
